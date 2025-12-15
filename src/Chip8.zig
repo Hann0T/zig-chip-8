@@ -44,6 +44,10 @@ pub fn set_i(self: *Chip8, location: u16) void {
     self.I = location;
 }
 
+pub fn get_sprite_data(self: *Chip8, len: usize) []u8 {
+    return self.ram[self.I..(self.I + len + 1)];
+}
+
 pub fn set_vx(self: *Chip8, x: usize, value: u8) void {
     self.V[x] = value;
 }

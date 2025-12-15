@@ -35,7 +35,7 @@ pub fn main() !void {
     // try stdout.print("228: {x}\n", .{chip8.ram[0x200 + 0x228]});
     // try stdout.flush();
 
-    var screen = try Screen.init();
+    var screen = try Screen.init(stdout);
     defer screen.deinit();
 
     var quit = false;
@@ -76,17 +76,34 @@ pub fn main() !void {
                     },
                     else => {
                         try stdout.print("0x0 something To implement {x}\n", .{opcode_value});
-                        // quit = true;
+                        std.Thread.sleep(2000000000);
+                        quit = true;
                     },
                 }
             },
             0xD => {
-                const vX: u8 = chip8.get_vx(second_nibble);
-                const vY: u8 = chip8.get_vx(third_nibble);
-                const height: u8 = @intCast(fourth_nibble);
-                const data: u16 = chip8.I;
-                try stdout.print("draw {x} pixel tall sprite at position {x}, {x} with data: {x}\n", .{ height, vX, vY, data });
-                try screen.draw(vX, vY, height);
+                const vX: usize = @intCast(chip8.get_vx(second_nibble));
+                const vY: usize = @intCast(chip8.get_vx(third_nibble));
+                const len: usize = @intCast(fourth_nibble);
+                const sprite_data: []u8 = chip8.get_sprite_data(len);
+                try stdout.print("draw sprite at position {x}, {x} with sprite data\n", .{ vX, vY });
+                // try stdout.print("x: {d}, index: {d}, mod: {d} and y?: {d}\n", .{ vX, vX / 8, vX % 8, vY });
+                // try stdout.print("sprite data: {d}\n", .{sprite_data.len});
+
+                // try stdout.print("before: {{\n", .{});
+                // for (screen.screen_data) |row| {
+                //     try stdout.print("{any},\n", .{row});
+                // }
+                // try stdout.print("}}\n", .{});
+
+                try screen.draw(vX, vY, sprite_data);
+
+                // try stdout.print("after: {{\n", .{});
+                // for (screen.screen_data) |row| {
+                //     try stdout.print("{any},\n", .{row});
+                // }
+                // try stdout.print("}}\n", .{});
+
                 try screen.flush();
                 // try stdout.print("draw 8x{x} pixel sprite at position v{x}, v{x} with data starting at the address in I, I is not changed\n", .{ fourth_nibble, second_nibble, third_nibble });
             },
