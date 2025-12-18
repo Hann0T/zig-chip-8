@@ -11,76 +11,54 @@ const Screen = @This();
 init_flags: sdl3.InitFlags,
 window: sdl3.video.Window,
 fps_capper: sdl3.extras.FramerateCapper(f32),
-screen_data: [32][8]u8, // should be [32][8]u8 since u8 is 8pixels and 8*8 is 64
+screen_data: [2048]u8,
 stdout: *std.Io.Writer,
 
 pub fn init(stdout: *std.Io.Writer) !Screen {
     const init_flags = sdl3.InitFlags{ .video = true };
     try sdl3.init(init_flags);
 
-    const window = try sdl3.video.Window.init("Hello SDL3", screen_width, screen_height, .{});
+    const window = try sdl3.video.Window.init("Chip8", screen_width, screen_height, .{});
 
     const fps_capper = sdl3.extras.FramerateCapper(f32){ .mode = .{ .limited = fps } };
 
-    var data: [32][8]u8 = undefined;
-    @memset(&data, .{0} ** 8);
+    var data: [2048]u8 = undefined;
+    @memset(&data, 0);
 
     return .{ .init_flags = init_flags, .window = window, .fps_capper = fps_capper, .screen_data = data, .stdout = stdout };
 }
 
 pub fn draw(self: *Screen, x: usize, y: usize, sprite_data: []u8) !void {
-    const screen_x = x / 8;
-    const n_shift: u3 = @intCast(x % 8);
+    var local_y = y;
+    for (sprite_data) |sprite| {
+        var local_x = x;
 
-    try self.stdout.print("=======================================\n", .{});
-    try self.stdout.print("shift: {d}\n", .{n_shift});
+        for (0..8) |sprite_index| {
+            const sprite_shift: u3 = @intCast(7 - sprite_index);
+            const sprite_pixel = (sprite >> sprite_shift) & 1;
 
-    var sprite_rest: u8 = 0;
-    var row: usize = 0;
-    while (sprite_rest != 0 or row < sprite_data.len) {
-        try self.stdout.print("row i: {d}\n", .{row});
-        if (row >= sprite_data.len) {
-            try self.stdout.print("wtf row?: {d}\n", .{row});
-            try self.stdout.print("=======================================\n", .{});
-            break;
-        }
-        const raw_row_sprite = sprite_data[row];
-        const screen_y = y + row;
-        var sprite = (raw_row_sprite >> n_shift);
+            const screen_index = (local_y % 32) * 64 + (local_x % 64);
+            var screen_pixel = self.screen_data[screen_index];
 
-        try self.stdout.print("sprite: {b}\n", .{raw_row_sprite});
-        try self.stdout.print("right: {b}\n", .{sprite});
+            if (sprite_pixel == 1) {
+                if (screen_pixel == 1) {
+                    screen_pixel = 0;
+                } else {
+                    screen_pixel = 1;
+                }
+            }
 
-        if (sprite_rest != 0) {
-            // merge logic
-            try self.stdout.print("rest form last draw: {b}\n", .{sprite_rest});
-            sprite |= sprite_rest;
-            try self.stdout.print("merged: {b}\n", .{sprite});
-            sprite_rest = 0; // clean the rest
-        } else {
-            try self.stdout.print("no rest\n", .{});
+            self.screen_data[screen_index] = screen_pixel;
+
+            local_x += 1; // next pixel
         }
 
-        if (raw_row_sprite != 0) {
-            const mask: u8 = raw_row_sprite << (7 - n_shift + 1);
-            sprite_rest = raw_row_sprite & mask;
-            try self.stdout.print("mask: {b}\n", .{mask});
-            try self.stdout.print("new rest: {b}\n", .{sprite_rest});
-        }
-
-        try self.stdout.print("to draw: {b}\n", .{sprite});
-
-        const screen_col = self.screen_data[screen_y][screen_x];
-        const new_screen_col = screen_col ^ sprite;
-        self.screen_data[screen_y][screen_x] = new_screen_col;
-        try self.stdout.print("=======================================\n", .{});
-
-        if (row < sprite_data.len) row += 1;
+        local_y += 1; // nex row
     }
 }
 
 pub fn clean(self: *Screen) !void {
-    @memset(&self.screen_data, .{0} ** 8);
+    @memset(&self.screen_data, 0);
     const color = sdl3.pixels.FColor{ .r = 0, .g = 0, .b = 0, .a = 0 };
     const surface = try self.window.getSurface();
     try surface.clear(color);
@@ -89,27 +67,22 @@ pub fn clean(self: *Screen) !void {
 pub fn flush(self: *Screen) !void {
     const surface = try self.window.getSurface();
 
-    for (self.screen_data, 0..) |row, i| {
-        for (row, 0..) |byte, j| {
-            for (0..8) |col| {
-                const offset: u3 = @intCast(col);
-                const pixel = (byte >> (7 - offset)) & 1;
+    const off_color = surface.mapRgb(0, 0, 0);
+    const on_color = surface.mapRgb(255, 255, 255);
 
-                const rect = sdl3.rect.Rect(i32){
-                    .x = @intCast((j * 8 + col) * scale), //
-                    .y = @intCast(i * scale), //
-                    .w = 1 * scale, // 1 because is a pixel
-                    .h = 1 * scale, // scale just to scale, lol
-                };
+    for (self.screen_data, 0..) |pixel, i| {
+        const y = i / 64;
+        const x = i % 64;
+        const rect = sdl3.rect.Rect(i32){
+            .x = @intCast(x * scale), //
+            .y = @intCast(y * scale), //
+            .w = @intCast(1 * scale), // 1 because is a pixel
+            .h = @intCast(1 * scale), // scale just to scale, lol
+        };
 
-                var color = surface.mapRgb(0, 0, 0);
-                if (pixel == 1) {
-                    color = surface.mapRgb(255, 255, 255);
-                }
+        const color = if (pixel == 1) on_color else off_color;
 
-                try surface.fillRect(rect, color);
-            }
-        }
+        try surface.fillRect(rect, color);
     }
 
     try self.window.updateSurface();
