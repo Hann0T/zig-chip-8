@@ -10,7 +10,7 @@ pub fn main() !void {
 
     const cwd = std.fs.cwd();
 
-    const file = try cwd.openFile("./data/ibm.ch8", .{ .mode = .read_only });
+    const file = try cwd.openFile("./data/test_opcode.ch8", .{ .mode = .read_only });
     defer file.close();
 
     var read_buffer: [1024]u8 = undefined;
@@ -37,6 +37,8 @@ pub fn main() !void {
     defer screen.deinit();
 
     var quit = false;
+    var skip_next_code = false;
+
     while (!quit) {
         // TODO: event driven architecture
         // std.Thread.sleep(2000000000);
@@ -56,6 +58,12 @@ pub fn main() !void {
         const second_nibble: u4 = @intCast((opcode_value & 0b0000111100000000) >> 8);
         const third_nibble: u4 = @intCast((opcode_value & 0b0000000011110000) >> 4);
         const fourth_nibble: u4 = @intCast(opcode_value & 0b0000000000001111);
+
+        if (skip_next_code) {
+            skip_next_code = false;
+            chip8.increment_pc();
+            continue;
+        }
 
         switch (first_nibble) {
             0x0 => {
@@ -79,6 +87,44 @@ pub fn main() !void {
                     },
                 }
             },
+            0xF => {
+                const second_half: u8 = @truncate(opcode_value);
+                // const second_half: u8 = @intCast(opcode_value & 0b0000000011111111);
+                switch (second_half) {
+                    0x33 => {
+                        try stdout.print("CALLING Fx33\n", .{});
+                        const vX = chip8.get_vx(second_nibble);
+                        const I: usize = @intCast(chip8.I);
+
+                        try stdout.print("X: {d}\n", .{vX});
+                        try stdout.print("I: {d}\n", .{I});
+
+                        try stdout.print("=====BEFORE=====\n", .{});
+                        try stdout.print("I:     {d}\n", .{chip8.ram[I]});
+                        try stdout.print("I + 1: {d}\n", .{chip8.ram[I + 1]});
+                        try stdout.print("I + 2: {d}\n", .{chip8.ram[I + 2]});
+
+                        chip8.ram[I] = vX / 100;
+                        chip8.ram[I + 1] = vX % 100 / 10;
+                        chip8.ram[I + 2] = vX % 10;
+
+                        try stdout.print("=====AFTER=====\n", .{});
+                        try stdout.print("I:     {d}\n", .{chip8.ram[I]});
+                        try stdout.print("I + 1: {d}\n", .{chip8.ram[I + 1]});
+                        try stdout.print("I + 2: {d}\n", .{chip8.ram[I + 2]});
+                    },
+                    else => {},
+                }
+            },
+            0x3 => {
+                const x = chip8.get_vx(second_nibble);
+                const NN: u8 = @intCast(opcode_value & 0b0000000011111111);
+                try stdout.print("is X: {d} == NN: {d}\n", .{ x, NN });
+                if (x == NN) {
+                    try stdout.print("it is! skipping next code\n", .{});
+                    skip_next_code = true;
+                }
+            },
             0xD => {
                 const vX: usize = @intCast(chip8.get_vx(second_nibble));
                 const vY: usize = @intCast(chip8.get_vx(third_nibble));
@@ -87,14 +133,17 @@ pub fn main() !void {
 
                 try stdout.print("drawing sprite at position X: {d}, Y: {d}\n", .{ vX, vY });
 
-                try screen.draw(vX, vY, sprite_data);
+                const collision = try screen.draw(vX, vY, sprite_data);
                 try screen.flush();
+                chip8.V[0xF] = collision;
             },
             0x1 => {
                 const address: u16 = @intCast(opcode_value & 0x0FFF);
                 try stdout.print("jumping to address {x}\n", .{address});
+                try stdout.flush();
 
                 chip8.jump_to(address);
+                continue;
             },
             0x6 => {
                 const x: usize = @intCast(second_nibble);
@@ -111,6 +160,8 @@ pub fn main() !void {
                 chip8.add_to_vx(x, value);
             },
             0xA => {
+                try stdout.print("doing the ANNN\n", .{});
+
                 const value = opcode_value & 0b0000111111111111;
                 try stdout.print("setting I to {x}\n", .{value});
 
