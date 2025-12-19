@@ -57,7 +57,7 @@ pub fn get_vx(self: *Chip8, x: usize) u8 {
 }
 
 pub fn add_to_vx(self: *Chip8, x: usize, value: u8) void {
-    self.V[x] += value;
+    self.V[x] = self.V[x] +% value;
 }
 
 pub fn jump_to(self: *Chip8, address: u16) void {
