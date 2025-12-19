@@ -28,7 +28,8 @@ pub fn init(stdout: *std.Io.Writer) !Screen {
     return .{ .init_flags = init_flags, .window = window, .fps_capper = fps_capper, .screen_data = data, .stdout = stdout };
 }
 
-pub fn draw(self: *Screen, x: usize, y: usize, sprite_data: []u8) !void {
+pub fn draw(self: *Screen, x: usize, y: usize, sprite_data: []u8) !u8 {
+    var collision: u8 = 0;
     var local_y = y;
     for (sprite_data) |sprite| {
         var local_x = x;
@@ -43,8 +44,10 @@ pub fn draw(self: *Screen, x: usize, y: usize, sprite_data: []u8) !void {
             if (sprite_pixel == 1) {
                 if (screen_pixel == 1) {
                     screen_pixel = 0;
+                    collision = 1;
                 } else {
                     screen_pixel = 1;
+                    collision = 0;
                 }
             }
 
@@ -55,6 +58,8 @@ pub fn draw(self: *Screen, x: usize, y: usize, sprite_data: []u8) !void {
 
         local_y += 1; // nex row
     }
+
+    return collision;
 }
 
 pub fn clean(self: *Screen) !void {
