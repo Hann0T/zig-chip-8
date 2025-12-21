@@ -125,6 +125,33 @@ pub fn main() !void {
                     skip_next_code = true;
                 }
             },
+            0x4 => {
+                const x = chip8.get_vx(second_nibble);
+                const NN: u8 = @intCast(opcode_value & 0b0000000011111111);
+                try stdout.print("is X: {d} != NN: {d}\n", .{ x, NN });
+                if (x != NN) {
+                    try stdout.print("it is! skipping next code\n", .{});
+                    skip_next_code = true;
+                }
+            },
+            0x5 => {
+                const x = chip8.get_vx(second_nibble);
+                const y = chip8.get_vx(third_nibble);
+                try stdout.print("is X: {d} == Y: {d}\n", .{ x, y });
+                if (x == y) {
+                    try stdout.print("it is! skipping next code\n", .{});
+                    skip_next_code = true;
+                }
+            },
+            0x9 => {
+                const x = chip8.get_vx(second_nibble);
+                const y = chip8.get_vx(third_nibble);
+                try stdout.print("is X: {d} != Y: {d}\n", .{ x, y });
+                if (x != y) {
+                    try stdout.print("it is! skipping next code\n", .{});
+                    skip_next_code = true;
+                }
+            },
             0xD => {
                 const vX: usize = @intCast(chip8.get_vx(second_nibble));
                 const vY: usize = @intCast(chip8.get_vx(third_nibble));
@@ -158,6 +185,70 @@ pub fn main() !void {
                 try stdout.print("adding {x} to V{x}\n", .{ value, x });
 
                 chip8.add_to_vx(x, value);
+            },
+            0x8 => {
+                switch (fourth_nibble) {
+                    0x0 => {
+                        const y = chip8.get_vx(third_nibble);
+                        chip8.set_vx(second_nibble, y);
+                    },
+                    0x1 => {
+                        const x = chip8.get_vx(second_nibble);
+                        const y = chip8.get_vx(third_nibble);
+                        chip8.set_vx(second_nibble, x | y);
+                    },
+                    0x2 => {
+                        const x = chip8.get_vx(second_nibble);
+                        const y = chip8.get_vx(third_nibble);
+                        chip8.set_vx(second_nibble, x & y);
+                    },
+                    0x3 => {
+                        const x = chip8.get_vx(second_nibble);
+                        const y = chip8.get_vx(third_nibble);
+                        chip8.set_vx(second_nibble, x ^ y);
+                    },
+                    0x4 => {
+                        const x = chip8.get_vx(second_nibble);
+                        const y = chip8.get_vx(third_nibble);
+                        const res: u16 = @as(u16, x) + @as(u16, y);
+
+                        chip8.set_vx(second_nibble, @truncate(res));
+
+                        // even if F == X, the flag should overwrite
+                        chip8.set_vx(0xF, if (res > 0xFF) 1 else 0);
+                    },
+                    0x5 => {
+                        const x = chip8.get_vx(second_nibble);
+                        const y = chip8.get_vx(third_nibble);
+
+                        chip8.set_vx(second_nibble, x -% y);
+
+                        // even if F == X, the flag should overwrite
+                        chip8.set_vx(0xF, if (x >= y) 1 else 0);
+                    },
+                    0x6 => {
+                        const y = chip8.get_vx(third_nibble);
+                        chip8.set_vx(0xF, y & 1);
+                        chip8.set_vx(second_nibble, y >> 1);
+                    },
+                    0x7 => {
+                        const x = chip8.get_vx(second_nibble);
+                        const y = chip8.get_vx(third_nibble);
+
+                        chip8.set_vx(second_nibble, y -% x);
+
+                        // even if F == X, the flag should overwrite
+                        chip8.set_vx(0xF, if (y >= x) 1 else 0);
+                    },
+                    0xE => {
+                        const y = chip8.get_vx(third_nibble);
+                        chip8.set_vx(0xF, (y >> 7) & 1);
+                        chip8.set_vx(second_nibble, @truncate(y << 1));
+                    },
+                    else => {
+                        try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
+                    },
+                }
             },
             0xA => {
                 try stdout.print("doing the ANNN\n", .{});
