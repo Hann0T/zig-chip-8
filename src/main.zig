@@ -113,6 +113,12 @@ pub fn main() !void {
                         try stdout.print("I + 1: {d}\n", .{chip8.ram[I + 1]});
                         try stdout.print("I + 2: {d}\n", .{chip8.ram[I + 2]});
                     },
+                    0x55 => {
+                        const x = second_nibble;
+                        const len = x + 1;
+                        @memcpy(chip8.ram[chip8.I..(chip8.I + len)], chip8.V[0..len]);
+                        chip8.set_i(chip8.I + len);
+                    },
                     else => {},
                 }
             },
@@ -135,21 +141,31 @@ pub fn main() !void {
                 }
             },
             0x5 => {
-                const x = chip8.get_vx(second_nibble);
-                const y = chip8.get_vx(third_nibble);
-                try stdout.print("is X: {d} == Y: {d}\n", .{ x, y });
-                if (x == y) {
-                    try stdout.print("it is! skipping next code\n", .{});
-                    skip_next_code = true;
+                switch (fourth_nibble) {
+                    0x0 => {
+                        const x = chip8.get_vx(second_nibble);
+                        const y = chip8.get_vx(third_nibble);
+                        try stdout.print("is X: {d} == Y: {d}\n", .{ x, y });
+                        if (x == y) {
+                            try stdout.print("it is! skipping next code\n", .{});
+                            skip_next_code = true;
+                        }
+                    },
+                    else => {},
                 }
             },
             0x9 => {
-                const x = chip8.get_vx(second_nibble);
-                const y = chip8.get_vx(third_nibble);
-                try stdout.print("is X: {d} != Y: {d}\n", .{ x, y });
-                if (x != y) {
-                    try stdout.print("it is! skipping next code\n", .{});
-                    skip_next_code = true;
+                switch (fourth_nibble) {
+                    0x0 => {
+                        const x = chip8.get_vx(second_nibble);
+                        const y = chip8.get_vx(third_nibble);
+                        try stdout.print("is X: {d} != Y: {d}\n", .{ x, y });
+                        if (x != y) {
+                            try stdout.print("it is! skipping next code\n", .{});
+                            skip_next_code = true;
+                        }
+                    },
+                    else => {},
                 }
             },
             0xD => {
@@ -263,7 +279,7 @@ pub fn main() !void {
             },
         }
 
-        try stdout.flush();
         chip8.increment_pc();
+        try stdout.flush();
     }
 }
