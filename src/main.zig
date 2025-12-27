@@ -37,7 +37,6 @@ pub fn main() !void {
     defer screen.deinit();
 
     var quit = false;
-    var skip_next_code = false;
 
     while (!quit) {
         // TODO: event driven architecture
@@ -59,12 +58,6 @@ pub fn main() !void {
         const third_nibble: u4 = @intCast((opcode_value & 0b0000000011110000) >> 4);
         const fourth_nibble: u4 = @intCast(opcode_value & 0b0000000000001111);
 
-        if (skip_next_code) {
-            skip_next_code = false;
-            chip8.increment_pc();
-            continue;
-        }
-
         switch (first_nibble) {
             0x0 => {
                 switch (opcode_value) {
@@ -72,16 +65,17 @@ pub fn main() !void {
                         try stdout.print("clear screen\n", .{});
                         try screen.clean();
                         try screen.flush();
+                        chip8.increment_pc();
                     },
                     0x00ee => {
-                        try stdout.print("return to address from stack\n", .{});
+                        try stdout.print("TODO: return to address from stack\n", .{});
                     },
                     0x00FD => {
                         try stdout.print("quit program, bye!\n", .{});
                         quit = true;
                     },
                     else => {
-                        try stdout.print("0x0 something To implement {x}\n", .{opcode_value});
+                        try stdout.print("TODO: 0x0 something To implement {x}\n", .{opcode_value});
                         std.Thread.sleep(2000000000);
                         quit = true;
                     },
@@ -112,14 +106,19 @@ pub fn main() !void {
                         try stdout.print("I:     {d}\n", .{chip8.ram[I]});
                         try stdout.print("I + 1: {d}\n", .{chip8.ram[I + 1]});
                         try stdout.print("I + 2: {d}\n", .{chip8.ram[I + 2]});
+                        chip8.increment_pc();
                     },
                     0x55 => {
                         const x = second_nibble;
                         const len = x + 1;
                         @memcpy(chip8.ram[chip8.I..(chip8.I + len)], chip8.V[0..len]);
                         chip8.set_i(chip8.I + len);
+                        chip8.increment_pc();
                     },
-                    else => {},
+                    else => {
+                        try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
+                        chip8.increment_pc();
+                    },
                 }
             },
             0x3 => {
@@ -128,8 +127,9 @@ pub fn main() !void {
                 try stdout.print("is X: {d} == NN: {d}\n", .{ x, NN });
                 if (x == NN) {
                     try stdout.print("it is! skipping next code\n", .{});
-                    skip_next_code = true;
+                    chip8.increment_pc();
                 }
+                chip8.increment_pc();
             },
             0x4 => {
                 const x = chip8.get_vx(second_nibble);
@@ -137,8 +137,9 @@ pub fn main() !void {
                 try stdout.print("is X: {d} != NN: {d}\n", .{ x, NN });
                 if (x != NN) {
                     try stdout.print("it is! skipping next code\n", .{});
-                    skip_next_code = true;
+                    chip8.increment_pc();
                 }
+                chip8.increment_pc();
             },
             0x5 => {
                 switch (fourth_nibble) {
@@ -148,10 +149,14 @@ pub fn main() !void {
                         try stdout.print("is X: {d} == Y: {d}\n", .{ x, y });
                         if (x == y) {
                             try stdout.print("it is! skipping next code\n", .{});
-                            skip_next_code = true;
+                            chip8.increment_pc();
                         }
+                        chip8.increment_pc();
                     },
-                    else => {},
+                    else => {
+                        try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
+                        chip8.increment_pc();
+                    },
                 }
             },
             0x9 => {
@@ -162,10 +167,14 @@ pub fn main() !void {
                         try stdout.print("is X: {d} != Y: {d}\n", .{ x, y });
                         if (x != y) {
                             try stdout.print("it is! skipping next code\n", .{});
-                            skip_next_code = true;
+                            chip8.increment_pc();
                         }
+                        chip8.increment_pc();
                     },
-                    else => {},
+                    else => {
+                        try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
+                        chip8.increment_pc();
+                    },
                 }
             },
             0xD => {
@@ -179,14 +188,13 @@ pub fn main() !void {
                 const collision = try screen.draw(vX, vY, sprite_data);
                 try screen.flush();
                 chip8.V[0xF] = collision;
+                chip8.increment_pc();
             },
             0x1 => {
                 const address: u16 = @intCast(opcode_value & 0x0FFF);
                 try stdout.print("jumping to address {x}\n", .{address});
-                try stdout.flush();
 
                 chip8.jump_to(address);
-                continue;
             },
             0x6 => {
                 const x: usize = @intCast(second_nibble);
@@ -194,6 +202,7 @@ pub fn main() !void {
                 try stdout.print("setting register V{x} to {x}\n", .{ x, value });
 
                 chip8.set_vx(x, value);
+                chip8.increment_pc();
             },
             0x7 => {
                 const x: usize = @intCast(second_nibble);
@@ -201,27 +210,32 @@ pub fn main() !void {
                 try stdout.print("adding {x} to V{x}\n", .{ value, x });
 
                 chip8.add_to_vx(x, value);
+                chip8.increment_pc();
             },
             0x8 => {
                 switch (fourth_nibble) {
                     0x0 => {
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(second_nibble, y);
+                        chip8.increment_pc();
                     },
                     0x1 => {
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(second_nibble, x | y);
+                        chip8.increment_pc();
                     },
                     0x2 => {
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(second_nibble, x & y);
+                        chip8.increment_pc();
                     },
                     0x3 => {
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(second_nibble, x ^ y);
+                        chip8.increment_pc();
                     },
                     0x4 => {
                         const x = chip8.get_vx(second_nibble);
@@ -232,6 +246,7 @@ pub fn main() !void {
 
                         // even if F == X, the flag should overwrite
                         chip8.set_vx(0xF, if (res > 0xFF) 1 else 0);
+                        chip8.increment_pc();
                     },
                     0x5 => {
                         const x = chip8.get_vx(second_nibble);
@@ -241,11 +256,13 @@ pub fn main() !void {
 
                         // even if F == X, the flag should overwrite
                         chip8.set_vx(0xF, if (x >= y) 1 else 0);
+                        chip8.increment_pc();
                     },
                     0x6 => {
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(0xF, y & 1);
                         chip8.set_vx(second_nibble, y >> 1);
+                        chip8.increment_pc();
                     },
                     0x7 => {
                         const x = chip8.get_vx(second_nibble);
@@ -255,14 +272,17 @@ pub fn main() !void {
 
                         // even if F == X, the flag should overwrite
                         chip8.set_vx(0xF, if (y >= x) 1 else 0);
+                        chip8.increment_pc();
                     },
                     0xE => {
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(0xF, (y >> 7) & 1);
                         chip8.set_vx(second_nibble, @truncate(y << 1));
+                        chip8.increment_pc();
                     },
                     else => {
                         try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
+                        chip8.increment_pc();
                     },
                 }
             },
@@ -273,13 +293,14 @@ pub fn main() !void {
                 try stdout.print("setting I to {x}\n", .{value});
 
                 chip8.set_i(value);
+                chip8.increment_pc();
             },
             else => {
                 try stdout.print("TO implement {x}\n", .{opcode_value});
+                chip8.increment_pc();
             },
         }
 
-        chip8.increment_pc();
         try stdout.flush();
     }
 }
