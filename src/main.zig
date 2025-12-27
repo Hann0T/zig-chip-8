@@ -115,6 +115,16 @@ pub fn main() !void {
                         chip8.set_i(chip8.I + len);
                         chip8.increment_pc();
                     },
+                    0x65 => {
+                        const x = second_nibble;
+                        const I: usize = @intCast(chip8.I);
+
+                        for (0..(x + 1)) |vX| {
+                            chip8.set_vx(vX, chip8.ram[I + vX]);
+                        }
+
+                        chip8.increment_pc();
+                    },
                     else => {
                         try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
                         chip8.increment_pc();
