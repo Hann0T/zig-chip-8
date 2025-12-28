@@ -27,7 +27,7 @@ V: [16]u8,
 ram: [4096]u8,
 
 stack: std.ArrayList(u16),
-// delay_timer: u8,
+delay_timer: u8,
 // sound_timer: u8,
 
 pub fn init(alloc: std.mem.Allocator) Chip8 {
@@ -45,6 +45,7 @@ pub fn init(alloc: std.mem.Allocator) Chip8 {
         .V = [_]u8{0} ** 16,
         .ram = ram,
         .alloc = alloc,
+        .delay_timer = 0,
         .stack = .empty,
     };
 }
@@ -96,4 +97,14 @@ pub fn push_stack(self: *Chip8, address: u16) !void {
 
 pub fn pop_stack(self: *Chip8) ?u16 {
     return self.stack.pop();
+}
+
+pub fn set_delay_timer(self: *Chip8, time: u8) void {
+    self.delay_timer = time;
+}
+
+pub fn decrement_timer(self: *Chip8) void {
+    if (self.delay_timer > 0) {
+        self.delay_timer -= 1;
+    }
 }

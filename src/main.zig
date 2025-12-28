@@ -1,6 +1,7 @@
 const std = @import("std");
 const Chip8 = @import("Chip8.zig");
 const Screen = @import("Screen.zig");
+const sdl3 = @import("sdl3");
 
 pub fn main() !void {
     var stdout_buffer: [1024]u8 = undefined;
@@ -10,7 +11,7 @@ pub fn main() !void {
 
     const cwd = std.fs.cwd();
 
-    const file = try cwd.openFile("./data/tests/opcode.ch8", .{ .mode = .read_only });
+    const file = try cwd.openFile("./data/tests/keypad.ch8", .{ .mode = .read_only });
     defer file.close();
 
     var read_buffer: [1024]u8 = undefined;
@@ -38,15 +39,130 @@ pub fn main() !void {
 
     var quit = false;
 
+    var key_pad: [16]bool = undefined;
+    @memset(&key_pad, false);
+
     while (!quit) {
-        // TODO: event driven architecture
-        // std.Thread.sleep(2000000000);
         screen.wait();
+        // try stdout.print("timer: {d}\n", .{chip8.delay_timer});
+        chip8.decrement_timer();
 
         while (screen.poll_event()) |event|
             switch (event) {
                 .quit => quit = true,
                 .terminating => quit = true,
+                .key_down => {
+                    if (event.key_down.key) |key| {
+                        switch (key) {
+                            .zero => {
+                                key_pad[0] = true;
+                            },
+                            .one => {
+                                key_pad[1] = true;
+                            },
+                            .two => {
+                                key_pad[2] = true;
+                            },
+                            .three => {
+                                key_pad[3] = true;
+                            },
+                            .four => {
+                                key_pad[4] = true;
+                            },
+                            .five => {
+                                key_pad[5] = true;
+                            },
+                            .six => {
+                                key_pad[6] = true;
+                            },
+                            .seven => {
+                                key_pad[7] = true;
+                            },
+                            .eight => {
+                                key_pad[8] = true;
+                            },
+                            .nine => {
+                                key_pad[9] = true;
+                            },
+                            .a => {
+                                key_pad[10] = true;
+                            },
+                            .b => {
+                                key_pad[11] = true;
+                            },
+                            .c => {
+                                key_pad[12] = true;
+                            },
+                            .d => {
+                                key_pad[13] = true;
+                            },
+                            .e => {
+                                key_pad[14] = true;
+                            },
+                            .f => {
+                                key_pad[15] = true;
+                            },
+                            else => {},
+                        }
+                        break;
+                    }
+                },
+                .key_up => {
+                    if (event.key_up.key) |key| {
+                        switch (key) {
+                            .zero => {
+                                key_pad[0] = false;
+                            },
+                            .one => {
+                                key_pad[1] = false;
+                            },
+                            .two => {
+                                key_pad[2] = false;
+                            },
+                            .three => {
+                                key_pad[3] = false;
+                            },
+                            .four => {
+                                key_pad[4] = false;
+                            },
+                            .five => {
+                                key_pad[5] = false;
+                            },
+                            .six => {
+                                key_pad[6] = false;
+                            },
+                            .seven => {
+                                key_pad[7] = false;
+                            },
+                            .eight => {
+                                key_pad[8] = false;
+                            },
+                            .nine => {
+                                key_pad[9] = false;
+                            },
+                            .a => {
+                                key_pad[10] = false;
+                            },
+                            .b => {
+                                key_pad[11] = false;
+                            },
+                            .c => {
+                                key_pad[12] = false;
+                            },
+                            .d => {
+                                key_pad[13] = false;
+                            },
+                            .e => {
+                                key_pad[14] = false;
+                            },
+                            .f => {
+                                key_pad[15] = false;
+                            },
+                            else => {},
+                        }
+                        break;
+                    }
+                },
                 else => {},
             };
 
@@ -134,7 +250,7 @@ pub fn main() !void {
                     },
                     else => {
                         try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
-                        chip8.increment_pc();
+                        quit = true;
                     },
                 }
             },
@@ -152,7 +268,7 @@ pub fn main() !void {
                     },
                     else => {
                         try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
-                        chip8.increment_pc();
+                        quit = true;
                     },
                 }
             },
@@ -175,29 +291,34 @@ pub fn main() !void {
             0x8 => {
                 switch (fourth_nibble) {
                     0x0 => {
+                        try stdout.print("8xy0 {x}\n", .{opcode_value});
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(second_nibble, y);
                         chip8.increment_pc();
                     },
                     0x1 => {
+                        try stdout.print("8xy1 {x}\n", .{opcode_value});
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(second_nibble, x | y);
                         chip8.increment_pc();
                     },
                     0x2 => {
+                        try stdout.print("8xy2 {x}\n", .{opcode_value});
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(second_nibble, x & y);
                         chip8.increment_pc();
                     },
                     0x3 => {
+                        try stdout.print("8xy3 {x}\n", .{opcode_value});
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
                         chip8.set_vx(second_nibble, x ^ y);
                         chip8.increment_pc();
                     },
                     0x4 => {
+                        try stdout.print("8xy4 {x}\n", .{opcode_value});
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
                         const res: u16 = @as(u16, x) + @as(u16, y);
@@ -209,6 +330,7 @@ pub fn main() !void {
                         chip8.increment_pc();
                     },
                     0x5 => {
+                        try stdout.print("8xy5 {x}\n", .{opcode_value});
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
 
@@ -219,12 +341,16 @@ pub fn main() !void {
                         chip8.increment_pc();
                     },
                     0x6 => {
-                        const y = chip8.get_vx(third_nibble);
-                        chip8.set_vx(0xF, y & 1);
+                        try stdout.print("8xy6 {x}\n", .{opcode_value});
+                        const y = chip8.get_vx(second_nibble);
+                        const flag = y & 1;
                         chip8.set_vx(second_nibble, y >> 1);
+                        chip8.set_vx(0xF, flag);
+
                         chip8.increment_pc();
                     },
                     0x7 => {
+                        try stdout.print("8xy7 {x}\n", .{opcode_value});
                         const x = chip8.get_vx(second_nibble);
                         const y = chip8.get_vx(third_nibble);
 
@@ -235,14 +361,17 @@ pub fn main() !void {
                         chip8.increment_pc();
                     },
                     0xE => {
-                        const y = chip8.get_vx(third_nibble);
-                        chip8.set_vx(0xF, (y >> 7) & 1);
+                        try stdout.print("8xyE {x}\n", .{opcode_value});
+                        const y = chip8.get_vx(second_nibble);
+                        const flag = (y >> 7) & 1;
                         chip8.set_vx(second_nibble, @truncate(y << 1));
+                        chip8.set_vx(0xF, flag);
+
                         chip8.increment_pc();
                     },
                     else => {
                         try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
-                        chip8.increment_pc();
+                        quit = true;
                     },
                 }
             },
@@ -268,12 +397,39 @@ pub fn main() !void {
                 chip8.V[0xF] = collision;
                 chip8.increment_pc();
             },
+            0xE => {
+                const second_half: u8 = @truncate(opcode_value);
+                switch (second_half) {
+                    0xA1 => {
+                        const vX = chip8.get_vx(second_nibble);
+                        if (!key_pad[vX]) {
+                            chip8.increment_pc();
+                        }
+                        chip8.increment_pc();
+                    },
+                    0x9E => {
+                        const vX = chip8.get_vx(second_nibble);
+                        if (key_pad[vX]) {
+                            chip8.increment_pc();
+                        }
+                        chip8.increment_pc();
+                    },
+                    else => {
+                        try stdout.print("TODO: {x}\n", .{opcode_value});
+                        quit = true;
+                    },
+                }
+            },
             0xF => {
                 const second_half: u8 = @truncate(opcode_value);
                 // const second_half: u8 = @intCast(opcode_value & 0b0000000011111111);
                 switch (second_half) {
+                    0x0A => {
+                        try stdout.print("TODO: Fx0A: {x}\n", .{opcode_value});
+                        quit = true;
+                    },
                     0x1E => {
-                        try stdout.print("Drawing font Fx29\n", .{});
+                        try stdout.print("Fx1E\n", .{});
                         const vX = chip8.get_vx(second_nibble);
                         chip8.set_i(chip8.I + vX);
                         chip8.increment_pc();
@@ -319,21 +475,35 @@ pub fn main() !void {
                         const x = second_nibble;
                         const I: usize = @intCast(chip8.I);
 
+                        // FIX: int overflow
                         for (0..(x + 1)) |vX| {
                             chip8.set_vx(vX, chip8.ram[I + vX]);
                         }
 
                         chip8.increment_pc();
                     },
+                    0x07 => {
+                        const timer = chip8.delay_timer;
+                        try stdout.print("Fx07: {x} setting vX to: {d}\n", .{ opcode_value, timer });
+                        chip8.set_vx(second_nibble, timer);
+                        chip8.increment_pc();
+                    },
+                    0x15 => {
+                        const vX = chip8.get_vx(second_nibble);
+                        try stdout.print("Fx15: {x} set timer to: {d}\n", .{ opcode_value, vX });
+                        chip8.set_delay_timer(vX);
+                        chip8.increment_pc();
+                    },
                     else => {
                         try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
+                        quit = true;
                         chip8.increment_pc();
                     },
                 }
             },
             else => {
-                try stdout.print("TO implement {x}\n", .{opcode_value});
-                chip8.increment_pc();
+                try stdout.print("TODO implement {x}\n", .{opcode_value});
+                quit = true;
             },
         }
 
