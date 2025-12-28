@@ -89,3 +89,11 @@ pub fn add_to_vx(self: *Chip8, x: usize, value: u8) void {
 pub fn jump_to(self: *Chip8, address: u16) void {
     self.pc = address;
 }
+
+pub fn push_stack(self: *Chip8, address: u16) !void {
+    try self.stack.append(self.alloc, address);
+}
+
+pub fn pop_stack(self: *Chip8) ?u16 {
+    return self.stack.pop();
+}

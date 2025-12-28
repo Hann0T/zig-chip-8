@@ -68,7 +68,14 @@ pub fn main() !void {
                         chip8.increment_pc();
                     },
                     0x00ee => {
-                        try stdout.print("TODO: return to address from stack\n", .{});
+                        try stdout.print("00EE: return to address from stack\n", .{});
+                        const address = chip8.pop_stack();
+                        if (address) |add| {
+                            chip8.jump_to(add);
+                        } else {
+                            try stdout.print("00EE: stack empty\n", .{});
+                            quit = true;
+                        }
                     },
                     0x00FD => {
                         try stdout.print("quit program, bye!\n", .{});
@@ -85,6 +92,12 @@ pub fn main() !void {
                 const address: u16 = @intCast(opcode_value & 0x0FFF);
                 try stdout.print("jumping to address {x}\n", .{address});
 
+                chip8.jump_to(address);
+            },
+            0x2 => {
+                try stdout.print("0x2NNN {x}\n", .{opcode_value});
+                const address: u16 = @intCast(opcode_value & 0x0FFF);
+                try chip8.push_stack(chip8.pc + 2); // the next pc
                 chip8.jump_to(address);
             },
             0x3 => {
@@ -259,6 +272,12 @@ pub fn main() !void {
                 const second_half: u8 = @truncate(opcode_value);
                 // const second_half: u8 = @intCast(opcode_value & 0b0000000011111111);
                 switch (second_half) {
+                    0x1E => {
+                        try stdout.print("Drawing font Fx29\n", .{});
+                        const vX = chip8.get_vx(second_nibble);
+                        chip8.set_i(chip8.I + vX);
+                        chip8.increment_pc();
+                    },
                     0x29 => {
                         try stdout.print("Drawing font Fx29\n", .{});
                         const vX = chip8.get_vx(second_nibble);
