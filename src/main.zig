@@ -81,62 +81,11 @@ pub fn main() !void {
                     },
                 }
             },
-            0xF => {
-                const second_half: u8 = @truncate(opcode_value);
-                // const second_half: u8 = @intCast(opcode_value & 0b0000000011111111);
-                switch (second_half) {
-                    0x29 => {
-                        try stdout.print("Drawing font Fx29\n", .{});
-                        const vX = chip8.get_vx(second_nibble);
-                        const index = vX * 5;
-                        chip8.set_i(0x050 + index);
-                        chip8.increment_pc();
-                    },
-                    0x33 => {
-                        try stdout.print("CALLING Fx33\n", .{});
-                        const vX = chip8.get_vx(second_nibble);
-                        const I: usize = @intCast(chip8.I);
+            0x1 => {
+                const address: u16 = @intCast(opcode_value & 0x0FFF);
+                try stdout.print("jumping to address {x}\n", .{address});
 
-                        try stdout.print("X: {d}\n", .{vX});
-                        try stdout.print("I: {d}\n", .{I});
-
-                        try stdout.print("=====BEFORE=====\n", .{});
-                        try stdout.print("I:     {d}\n", .{chip8.ram[I]});
-                        try stdout.print("I + 1: {d}\n", .{chip8.ram[I + 1]});
-                        try stdout.print("I + 2: {d}\n", .{chip8.ram[I + 2]});
-
-                        chip8.ram[I] = vX / 100;
-                        chip8.ram[I + 1] = vX % 100 / 10;
-                        chip8.ram[I + 2] = vX % 10;
-
-                        try stdout.print("=====AFTER=====\n", .{});
-                        try stdout.print("I:     {d}\n", .{chip8.ram[I]});
-                        try stdout.print("I + 1: {d}\n", .{chip8.ram[I + 1]});
-                        try stdout.print("I + 2: {d}\n", .{chip8.ram[I + 2]});
-                        chip8.increment_pc();
-                    },
-                    0x55 => {
-                        const x = second_nibble;
-                        const len = x + 1;
-                        @memcpy(chip8.ram[chip8.I..(chip8.I + len)], chip8.V[0..len]);
-                        chip8.set_i(chip8.I + len);
-                        chip8.increment_pc();
-                    },
-                    0x65 => {
-                        const x = second_nibble;
-                        const I: usize = @intCast(chip8.I);
-
-                        for (0..(x + 1)) |vX| {
-                            chip8.set_vx(vX, chip8.ram[I + vX]);
-                        }
-
-                        chip8.increment_pc();
-                    },
-                    else => {
-                        try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
-                        chip8.increment_pc();
-                    },
-                }
+                chip8.jump_to(address);
             },
             0x3 => {
                 const x = chip8.get_vx(second_nibble);
@@ -193,25 +142,6 @@ pub fn main() !void {
                         chip8.increment_pc();
                     },
                 }
-            },
-            0xD => {
-                const vX: usize = @intCast(chip8.get_vx(second_nibble));
-                const vY: usize = @intCast(chip8.get_vx(third_nibble));
-                const len: usize = @intCast(fourth_nibble);
-                const sprite_data: []u8 = chip8.get_sprite_data(len);
-
-                try stdout.print("drawing sprite at position X: {d}, Y: {d}\n", .{ vX, vY });
-
-                const collision = try screen.draw(vX, vY, sprite_data);
-                try screen.flush();
-                chip8.V[0xF] = collision;
-                chip8.increment_pc();
-            },
-            0x1 => {
-                const address: u16 = @intCast(opcode_value & 0x0FFF);
-                try stdout.print("jumping to address {x}\n", .{address});
-
-                chip8.jump_to(address);
             },
             0x6 => {
                 const x: usize = @intCast(second_nibble);
@@ -311,6 +241,76 @@ pub fn main() !void {
 
                 chip8.set_i(value);
                 chip8.increment_pc();
+            },
+            0xD => {
+                const vX: usize = @intCast(chip8.get_vx(second_nibble));
+                const vY: usize = @intCast(chip8.get_vx(third_nibble));
+                const len: usize = @intCast(fourth_nibble);
+                const sprite_data: []u8 = chip8.get_sprite_data(len);
+
+                try stdout.print("drawing sprite at position X: {d}, Y: {d}\n", .{ vX, vY });
+
+                const collision = try screen.draw(vX, vY, sprite_data);
+                try screen.flush();
+                chip8.V[0xF] = collision;
+                chip8.increment_pc();
+            },
+            0xF => {
+                const second_half: u8 = @truncate(opcode_value);
+                // const second_half: u8 = @intCast(opcode_value & 0b0000000011111111);
+                switch (second_half) {
+                    0x29 => {
+                        try stdout.print("Drawing font Fx29\n", .{});
+                        const vX = chip8.get_vx(second_nibble);
+                        const index = vX * 5;
+                        chip8.set_i(0x050 + index);
+                        chip8.increment_pc();
+                    },
+                    0x33 => {
+                        try stdout.print("CALLING Fx33\n", .{});
+                        const vX = chip8.get_vx(second_nibble);
+                        const I: usize = @intCast(chip8.I);
+
+                        try stdout.print("X: {d}\n", .{vX});
+                        try stdout.print("I: {d}\n", .{I});
+
+                        try stdout.print("=====BEFORE=====\n", .{});
+                        try stdout.print("I:     {d}\n", .{chip8.ram[I]});
+                        try stdout.print("I + 1: {d}\n", .{chip8.ram[I + 1]});
+                        try stdout.print("I + 2: {d}\n", .{chip8.ram[I + 2]});
+
+                        chip8.ram[I] = vX / 100;
+                        chip8.ram[I + 1] = vX % 100 / 10;
+                        chip8.ram[I + 2] = vX % 10;
+
+                        try stdout.print("=====AFTER=====\n", .{});
+                        try stdout.print("I:     {d}\n", .{chip8.ram[I]});
+                        try stdout.print("I + 1: {d}\n", .{chip8.ram[I + 1]});
+                        try stdout.print("I + 2: {d}\n", .{chip8.ram[I + 2]});
+                        chip8.increment_pc();
+                    },
+                    0x55 => {
+                        const x = second_nibble;
+                        const len = x + 1;
+                        @memcpy(chip8.ram[chip8.I..(chip8.I + len)], chip8.V[0..len]);
+                        chip8.set_i(chip8.I + len);
+                        chip8.increment_pc();
+                    },
+                    0x65 => {
+                        const x = second_nibble;
+                        const I: usize = @intCast(chip8.I);
+
+                        for (0..(x + 1)) |vX| {
+                            chip8.set_vx(vX, chip8.ram[I + vX]);
+                        }
+
+                        chip8.increment_pc();
+                    },
+                    else => {
+                        try stdout.print("TODO: what is this?: {x}\n", .{opcode_value});
+                        chip8.increment_pc();
+                    },
+                }
             },
             else => {
                 try stdout.print("TO implement {x}\n", .{opcode_value});
