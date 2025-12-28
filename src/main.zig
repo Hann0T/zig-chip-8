@@ -10,7 +10,7 @@ pub fn main() !void {
 
     const cwd = std.fs.cwd();
 
-    const file = try cwd.openFile("./data/test_opcode.ch8", .{ .mode = .read_only });
+    const file = try cwd.openFile("./data/tests/opcode.ch8", .{ .mode = .read_only });
     defer file.close();
 
     var read_buffer: [1024]u8 = undefined;
@@ -85,6 +85,13 @@ pub fn main() !void {
                 const second_half: u8 = @truncate(opcode_value);
                 // const second_half: u8 = @intCast(opcode_value & 0b0000000011111111);
                 switch (second_half) {
+                    0x29 => {
+                        try stdout.print("Drawing font Fx29\n", .{});
+                        const vX = chip8.get_vx(second_nibble);
+                        const index = vX * 5;
+                        chip8.set_i(0x050 + index);
+                        chip8.increment_pc();
+                    },
                     0x33 => {
                         try stdout.print("CALLING Fx33\n", .{});
                         const vX = chip8.get_vx(second_nibble);
