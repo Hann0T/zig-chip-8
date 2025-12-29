@@ -28,7 +28,7 @@ ram: [4096]u8,
 
 stack: std.ArrayList(u16),
 delay_timer: u8,
-// sound_timer: u8,
+sound_timer: u8,
 
 pub fn init(alloc: std.mem.Allocator) Chip8 {
     var ram = [_]u8{0} ** 4096;
@@ -46,6 +46,7 @@ pub fn init(alloc: std.mem.Allocator) Chip8 {
         .ram = ram,
         .alloc = alloc,
         .delay_timer = 0,
+        .sound_timer = 0,
         .stack = .empty,
     };
 }
@@ -103,8 +104,16 @@ pub fn set_delay_timer(self: *Chip8, time: u8) void {
     self.delay_timer = time;
 }
 
+pub fn set_sound_timer(self: *Chip8, time: u8) void {
+    self.sound_timer = time;
+}
+
 pub fn decrement_timer(self: *Chip8) void {
     if (self.delay_timer > 0) {
         self.delay_timer -= 1;
+    }
+
+    if (self.sound_timer > 0) {
+        self.sound_timer -= 1;
     }
 }

@@ -11,7 +11,11 @@ pub fn main() !void {
 
     const cwd = std.fs.cwd();
 
-    const path = "./data/games/flightrunner.ch8";
+    // working games
+    // const path = "./data/games/br8kout.ch8";
+    // const path = "./data/games/flightrunner.ch8";
+
+    const path = "./data/games/piper.ch8";
     // const path = "./data/tests/scrolling.ch8";
     const file = try cwd.openFile(path, .{ .mode = .read_only });
     defer file.close();
@@ -203,6 +207,7 @@ pub fn main() !void {
                         },
                         else => {
                             try stdout.print("TODO: 0x0 something To implement {x}\n", .{opcode_value});
+                            // chip8.increment_pc();
                             quit = true;
                         },
                     }
@@ -519,8 +524,14 @@ pub fn main() !void {
                         },
                         0x15 => {
                             const vX = chip8.get_vx(second_nibble);
-                            try stdout.print("Fx15: {x} set timer to: {d}\n", .{ opcode_value, vX });
+                            try stdout.print("Fx15: {x} set delay timer to: {d}\n", .{ opcode_value, vX });
                             chip8.set_delay_timer(vX);
+                            chip8.increment_pc();
+                        },
+                        0x18 => {
+                            const vX = chip8.get_vx(second_nibble);
+                            try stdout.print("Fx15: {x} set sound timer to: {d}\n", .{ opcode_value, vX });
+                            chip8.set_sound_timer(vX);
                             chip8.increment_pc();
                         },
                         else => {
