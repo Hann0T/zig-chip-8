@@ -11,7 +11,9 @@ pub fn main() !void {
 
     const cwd = std.fs.cwd();
 
-    const file = try cwd.openFile("./data/tests/keypad.ch8", .{ .mode = .read_only });
+    const path = "./data/games/flightrunner.ch8";
+    // const path = "./data/tests/scrolling.ch8";
+    const file = try cwd.openFile(path, .{ .mode = .read_only });
     defer file.close();
 
     var read_buffer: [1024]u8 = undefined;
@@ -201,7 +203,6 @@ pub fn main() !void {
                         },
                         else => {
                             try stdout.print("TODO: 0x0 something To implement {x}\n", .{opcode_value});
-                            std.Thread.sleep(2000000000);
                             quit = true;
                         },
                     }
@@ -384,6 +385,13 @@ pub fn main() !void {
                     try stdout.print("setting I to {x}\n", .{value});
 
                     chip8.set_i(value);
+                    chip8.increment_pc();
+                },
+                0xC => {
+                    try stdout.print("CXNN creating random number\n", .{});
+                    const random = std.crypto.random.int(u8);
+                    const second_half: u8 = @truncate(opcode_value);
+                    chip8.set_vx(second_nibble, random & second_half);
                     chip8.increment_pc();
                 },
                 0xD => {
